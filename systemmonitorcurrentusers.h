@@ -14,13 +14,14 @@ public:
     }
 
 public slots:
-    void doCurrentUsers()
+    QString doCurrentUsers()
     {
         QProcess users;
         users.start("w");
         users.waitForFinished();
         line = users.readAllStandardOutput();
         emit CurrentFinished();
+        return line;
     }
 
 signals:

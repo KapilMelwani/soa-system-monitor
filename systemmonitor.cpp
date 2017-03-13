@@ -9,7 +9,7 @@ SystemMonitor::SystemMonitor(QWidget *parent) :
     qRegisterMetaType< QVector<int> >("QVector<int>");
     ui->setupUi(this);
     //Parte HARDWARE
-    QJsonModel *model = new QJsonModel;
+    //QJsonModel *model = new QJsonModel;
     connect(&Worker,SIGNAL(hardwareFinished()),this,SLOT(listarHardware()));
     connect(this,SIGNAL(hardwareRequest()),&Worker,SLOT(doHardware()));
     emit hardwareRequest();
@@ -34,12 +34,17 @@ SystemMonitor::SystemMonitor(QWidget *parent) :
 SystemMonitor::~SystemMonitor()
 {
     delete ui;
+    hiloHardware.quit();
+    hiloCurrent.quit();
+
 }
 
 void SystemMonitor::listarSensores()
 {
+    ui->treeSensores->setUniformRowHeights(true);
     QDir directorio("/sys/class/hwmon/hwmon0/");
     QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeSensores);
+    QString content;
     QStringList filtro_temp;
     filtro_temp << "temp*";
     QStringList hwmon = directorio.entryList(filtro_temp);
@@ -50,8 +55,14 @@ void SystemMonitor::listarSensores()
         item->setText(0,nombre);
         ui->treeSensores->addTopLevelItem(item);
     }
+    nombre.remove('\n');
     for(int i=0;i<hwmon.size();i++){
-        addChild(item,hwmon[i]);
+        QFile fileHwmon(directorio.absolutePath() + '/' + hwmon[i]);
+        if(fileHwmon.open(QIODevice::ReadOnly))
+            content = QString(fileHwmon.readAll());
+            QString hwmonfinal = nombre + "::" + hwmon[i] + "->" + content;
+        addChild(item,hwmonfinal);
+
     }
 }
 
@@ -69,7 +80,6 @@ QStringList SystemMonitor::listarProcesos()
     QStringList filtro;
     filtro << "[0-9]*";
     QString cmdline;
-    QString cmdline_empty = "EMPTY";
     QString name;
     QString state;
     QString threads;
@@ -78,35 +88,24 @@ QStringList SystemMonitor::listarProcesos()
     const char STATE_PROCESS[] = "State:";
 
     QStringList proc = directorio.entryList(filtro);
-    //ui->tableProcesos->setRowCount(proc.size());
 
     for(int i=0;i<proc.size();i++){
-
-        //ui->tableProcesos->setItem(i,0,new QTableWidgetItem(proc[i]));
-
         QFile cmdline_file(directorio.absolutePath() + '/' + proc[i] + "/cmdline");
         if(cmdline_file.open(QIODevice::ReadOnly)){
             cmdline = QString(cmdline_file.readAll());
-            //if(cmdline.isEmpty())
-                //ui->tableProcesos->setItem(i,1,new QTableWidgetItem(cmdline_empty));
-            //else
-                //ui->tableProcesos->setItem(i,1,new QTableWidgetItem(cmdline));
         }
         QFile status_file(directorio.absolutePath() + '/' + proc[i] + "/status");
 
         status_file.open(QIODevice::ReadOnly);
             name = QString(status_file.readAll()).split("\n").filter(NAME_PROCESS).value(0).mid(sizeof(NAME_PROCESS));
-            //ui->tableProcesos->setItem(i,2,new QTableWidgetItem(name));
         status_file.close();
 
         status_file.open(QIODevice::ReadOnly);
             state = QString(status_file.readAll()).split("\n").filter(STATE_PROCESS).value(0).mid(sizeof(STATE_PROCESS));
-            //ui->tableProcesos->setItem(i,3,new QTableWidgetItem(state));
         status_file.close();
 
         status_file.open(QIODevice::ReadOnly);
             threads= QString(status_file.readAll()).split("\n").filter(THREADS_PROCESS).value(0).mid(sizeof(THREADS_PROCESS));
-            //ui->tableProcesos->setItem(i,4,new QTableWidgetItem(threads));
         status_file.close();
         elements.push_back(proc[i]);
         elements.push_back(cmdline);
@@ -118,14 +117,12 @@ QStringList SystemMonitor::listarProcesos()
 
 }
 
-void SystemMonitor::currentusers(void)
+void SystemMonitor::currentusers()
 {
-    QProcess users;
-    QString line;
-    users.start("w");
-    users.waitForFinished();
-    line = users.readAllStandardOutput();
+    QString line = current.getLine();
     ui->labelusers->setText(line);
+    qDebug()<<line;
+
 }
 
 void SystemMonitor::listarHardware()
@@ -165,7 +162,6 @@ void SystemMonitor::cpuinfo(void)
         while (!stream.atEnd()){
             cpuline.append(stream.readLine()+"\n");
         }
-
         ui->labelCPU->setText(cpuline);
     }
     cpuinfoFile.close();
@@ -215,7 +211,11 @@ void SystemMonitor::processFinished()
 void SystemMonitor::on_tabWidget_tabBarClicked(int index)
 {
     switch(index){
+    case 0:
+        listarSensores();
         case 4:
             cpuinfo();
     }
 }
+
+

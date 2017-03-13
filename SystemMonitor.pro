@@ -25,13 +25,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         systemmonitor.cpp \
-    qjsonmodel.cpp \
-    systemmonitorqueue.cpp
+    qjsonmodel.cpp
 
 HEADERS  += systemmonitor.h \
     qjsonmodel.h \
     systemmonitorworker.h \
-    systemmonitorqueue.h \
     systemmonitorcurrentusers.h
 
 FORMS    += systemmonitor.ui

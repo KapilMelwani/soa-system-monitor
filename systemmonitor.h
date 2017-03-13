@@ -43,16 +43,11 @@ public:
     void listarSensores();
     void addChild(QTreeWidgetItem *parent,QString name);
     void cpuinfo(void);
-
-
 public slots:
     void processFinished();
     void listarHardware();
     QStringList listarProcesos();
     void currentusers(void);
-
-
-
 signals:
     void hardwareRequest();
     void sensorsRequest();
