@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QStringList>
 #include <QFutureSynchronizer>
+#include <QTimer>
 #include <QThread>
 #include <QDir>
 #include <QProcess>
@@ -25,6 +26,7 @@
 #include <mythread.h>
 #include <qjsonmodel.h>
 #include <systemmonitorworker.h>
+#include <systemmonitorcurrentusers.h>
 
 namespace Ui {
 class SystemMonitor;
@@ -39,27 +41,36 @@ public:
     explicit SystemMonitor(QWidget *parent = 0);
     ~SystemMonitor();
     void listarSensores();
-    void addRoot(QString name);
+    void addChild(QTreeWidgetItem *parent,QString name);
+    void cpuinfo(void);
+
 
 public slots:
     void processFinished();
     void listarHardware();
     QStringList listarProcesos();
+    void currentusers(void);
+
 
 
 signals:
     void hardwareRequest();
+    void sensorsRequest();
+    void currentRequest();
 
 private slots:
     void on_killButton_clicked();
     void on_restartButton_clicked();
-  //  void on_tabWidget_tabBarClicked(int index);
+    void on_tabWidget_tabBarClicked(int index);
 
 private:
     Ui::SystemMonitor *ui;
-    mythread thread;
-    QThread hilo_hardware;
+    QThread hiloHardware;
+    QThread hiloCurrent;
+    QFutureWatcher<QStringList> watcher;
     QMutex mutex;
+    QTimer timer;
+    SystemMonitorCurrentUsers current;
     QFuture<QStringList> future;
     SystemMonitorWorker Worker;
     QWaitCondition wait;

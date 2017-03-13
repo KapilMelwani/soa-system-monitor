@@ -8,14 +8,27 @@ SystemMonitor::SystemMonitor(QWidget *parent) :
 
     qRegisterMetaType< QVector<int> >("QVector<int>");
     ui->setupUi(this);
+    //Parte HARDWARE
+    QJsonModel *model = new QJsonModel;
     connect(&Worker,SIGNAL(hardwareFinished()),this,SLOT(listarHardware()));
     connect(this,SIGNAL(hardwareRequest()),&Worker,SLOT(doHardware()));
     emit hardwareRequest();
-    QFutureWatcher<QStringList> watcher;
+    Worker.moveToThread(&hiloHardware);
+    hiloHardware.start();
+    //Parte SENSORES
+    emit sensorsRequest();
+    //Parte CURRENT USERS
+    connect(&current,SIGNAL(CurrentFinished()),this,SLOT(currentusers()));
+    connect(this,SIGNAL(currentRequest()),&current,SLOT(doCurrentUsers()));
+    emit currentRequest();
+    current.moveToThread(&hiloCurrent);
+    hiloCurrent.start();
+    //Parte LISTAR PROCESOS
     future = QtConcurrent::run(this,&SystemMonitor::listarProcesos);
+    timer.start(5000);
     watcher.setFuture(future);
     connect(&watcher,SIGNAL(finished()),this,SLOT(processFinished()));
-
+    //cpuinfo();
 }
 
 SystemMonitor::~SystemMonitor()
@@ -23,22 +36,30 @@ SystemMonitor::~SystemMonitor()
     delete ui;
 }
 
-void SystemMonitor::addRoot(QString name)
-{
-    QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeSensores);
-    item->setText(0,name);
-    ui->treeSensores->addTopLevelItem(item);
-}
-
 void SystemMonitor::listarSensores()
 {
     QDir directorio("/sys/class/hwmon/hwmon0/");
-    QStringList hwmon = directorio.entryList();
-    qDebug()<<hwmon;
-    for(int i=0;i<hwmon.size();i++)
-        addRoot(hwmon[i]);
+    QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeSensores);
+    QStringList filtro_temp;
+    filtro_temp << "temp*";
+    QStringList hwmon = directorio.entryList(filtro_temp);
+    QString nombre;
+    QFile nombreSensor(directorio.absolutePath() + "/name");
+    if(nombreSensor.open(QIODevice::ReadOnly)){
+        nombre = QString(nombreSensor.readAll());
+        item->setText(0,nombre);
+        ui->treeSensores->addTopLevelItem(item);
+    }
+    for(int i=0;i<hwmon.size();i++){
+        addChild(item,hwmon[i]);
+    }
+}
 
-
+void SystemMonitor::addChild(QTreeWidgetItem *parent,QString name)
+{
+    QTreeWidgetItem *item = new QTreeWidgetItem();
+    item->setText(0,name);
+    parent->addChild(item);
 }
 
 QStringList SystemMonitor::listarProcesos()
@@ -93,9 +114,18 @@ QStringList SystemMonitor::listarProcesos()
         elements.push_back(state);
         elements.push_back(threads);
     }
-    sleep(1);
     return elements;
 
+}
+
+void SystemMonitor::currentusers(void)
+{
+    QProcess users;
+    QString line;
+    users.start("w");
+    users.waitForFinished();
+    line = users.readAllStandardOutput();
+    ui->labelusers->setText(line);
 }
 
 void SystemMonitor::listarHardware()
@@ -124,36 +154,68 @@ void SystemMonitor::on_restartButton_clicked()
     sudo.waitForFinished(-1);
 }
 
-void SystemMonitor::processFinished()
+void SystemMonitor::cpuinfo(void)
 {
-    QStringList elementsTableProcess = future.result();
-    ui->tableProcesos->insertRow(elementsTableProcess.size());
-    for(int i=0;i<elementsTableProcess.size();i+=5)
-        ui->tableProcesos->setItem(i,0,new QTableWidgetItem(elementsTableProcess[i]));
-    for(int i=1;i<elementsTableProcess.size();i+=5)
-        ui->tableProcesos->setItem(i,1,new QTableWidgetItem(elementsTableProcess[i]));
-    for(int i=2;i<elementsTableProcess.size();i+=5)
-        ui->tableProcesos->setItem(i,2,new QTableWidgetItem(elementsTableProcess[i]));
-    for(int i=3;i<elementsTableProcess.size();i+=5)
-        ui->tableProcesos->setItem(i,3,new QTableWidgetItem(elementsTableProcess[i]));
-    for(int i=4;i<elementsTableProcess.size();i+=5)
-        ui->tableProcesos->setItem(i,4,new QTableWidgetItem(elementsTableProcess[i]));
+    QDir cpudir("/proc");
+    ui->labelCPU->setWordWrap(true);
+    QFile cpuinfoFile(cpudir.absolutePath() + "/cpuinfo");
+    if (cpuinfoFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+        QString cpuline = cpuinfoFile.readLine();
+        QTextStream stream(&cpuinfoFile);
+        while (!stream.atEnd()){
+            cpuline.append(stream.readLine()+"\n");
+        }
+
+        ui->labelCPU->setText(cpuline);
+    }
+    cpuinfoFile.close();
 }
 
-/*void SystemMonitor::on_tabWidget_tabBarClicked(int index)
+void SystemMonitor::processFinished()
 {
-    switch(index){
-        case 0:
-            listarSensores();
-            break;
-        case 1:
-            listarProcesos();
-            break;
-        case 2:
-            break;
-        case 3:
-            listarHardware();
-            break;
+    int size;
+    int rowPID = 0;
+    int rowCMDLINE = 0;
+    int rowSTATE = 0;
+    int rowNAME = 0;
+    int rowTHREADS = 0;
+    QStringList elementsTableProcess = future.result();
+    size = elementsTableProcess.size()/5;
+    ui->tableProcesos->setRowCount(size);
+    for(int i=0;i<elementsTableProcess.size();i+=5){
+        ui->tableProcesos->setItem(rowPID,0,new QTableWidgetItem(elementsTableProcess[i]));
+        rowPID++;
+    }
+    for(int j=1;j<elementsTableProcess.size();j+=5){
+        if(elementsTableProcess[j] == ""){
+            ui->tableProcesos->setItem(rowCMDLINE,1,new QTableWidgetItem("EMPTY"));
+            rowCMDLINE++;
+        }
+        else{
+            ui->tableProcesos->setItem(rowCMDLINE,1,new QTableWidgetItem(elementsTableProcess[j]));
+            rowCMDLINE++;
+        }
+    }
+    for(int k=2;k<elementsTableProcess.size();k+=5){
+        ui->tableProcesos->setItem(rowSTATE,2,new QTableWidgetItem(elementsTableProcess[k]));
+        rowSTATE++;
+    }
+    for(int l=3;l<elementsTableProcess.size();l+=5)
+    {
+        ui->tableProcesos->setItem(rowNAME,3,new QTableWidgetItem(elementsTableProcess[l]));
+        rowNAME++;
+    }
+    for(int m=4;m<elementsTableProcess.size();m+=5)
+    {
+        ui->tableProcesos->setItem(rowTHREADS,4,new QTableWidgetItem(elementsTableProcess[m]));
+        rowTHREADS++;
     }
 }
-*/
+
+void SystemMonitor::on_tabWidget_tabBarClicked(int index)
+{
+    switch(index){
+        case 4:
+            cpuinfo();
+    }
+}

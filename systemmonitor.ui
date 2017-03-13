@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>658</width>
-    <height>464</height>
+    <width>545</width>
+    <height>533</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>SystemMonitor</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tabSensores">
        <attribute name="title">
@@ -26,7 +26,13 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QTreeWidget" name="treeSensores"/>
+         <widget class="QTreeWidget" name="treeSensores">
+          <column>
+           <property name="text">
+            <string notr="true">1</string>
+           </property>
+          </column>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -40,70 +46,54 @@
        <attribute name="title">
         <string>Procesos</string>
        </attribute>
-       <widget class="QTableWidget" name="tableProcesos">
-        <property name="geometry">
-         <rect>
-          <x>9</x>
-          <y>9</y>
-          <width>501</width>
-          <height>331</height>
-         </rect>
-        </property>
-        <property name="columnCount">
-         <number>5</number>
-        </property>
-        <column>
-         <property name="text">
-          <string>PID</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>CMDLINE</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>NAME</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>STATE</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>THREADS</string>
-         </property>
-        </column>
-       </widget>
-       <widget class="QPushButton" name="killButton">
-        <property name="geometry">
-         <rect>
-          <x>520</x>
-          <y>100</y>
-          <width>111</width>
-          <height>28</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Kill Proccess</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="restartButton">
-        <property name="geometry">
-         <rect>
-          <x>520</x>
-          <y>190</y>
-          <width>111</width>
-          <height>28</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Restart Machine</string>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QTableWidget" name="tableProcesos">
+          <property name="columnCount">
+           <number>5</number>
+          </property>
+          <column>
+           <property name="text">
+            <string>PID</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>CMDLINE</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>NAME</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>STATE</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>THREADS</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="killButton">
+          <property name="text">
+           <string>Kill Proccess</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="restartButton">
+          <property name="text">
+           <string>Restart Machine</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="tabRed">
        <attribute name="title">
@@ -129,6 +119,44 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tabCpuinfo">
+       <attribute name="title">
+        <string>CPU</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="labelCPU">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabUsers">
+       <attribute name="title">
+        <string>Current Users</string>
+       </attribute>
+       <widget class="QLabel" name="labelusers">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>40</y>
+          <width>551</width>
+          <height>231</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -138,7 +166,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>658</width>
+     <width>545</width>
      <height>25</height>
     </rect>
    </property>
