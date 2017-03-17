@@ -22,6 +22,14 @@
  * SOFTWARE.
  */
 
+
+/*
+    PRACTICA 2 SISTEMAS OPERATIVOS AVANZADOS
+    KAPIL ASHOK MELWANI CHUGANI
+    UNIVERSIDAD DE LA LAGUNA
+*/
+
+
 #include "qjsonmodel.h"
 #include <QFile>
 #include <QDebug>

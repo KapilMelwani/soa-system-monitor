@@ -1,3 +1,9 @@
+/*
+	PRACTICA 2 SISTEMAS OPERATIVOS AVANZADOS
+	KAPIL ASHOK MELWANI CHUGANI
+	UNIVERSIDAD DE LA LAGUNA 
+*/
+
 #include "systemmonitor.h"
 #include <QApplication>
 
