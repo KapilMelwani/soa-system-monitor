@@ -18,7 +18,7 @@ Hemos decidido mostrar:
 
 Aqui podremos ver una version final de nuestro listar procesos en un QTableWidget
 
-![Ventana Listar Procesos](/../master/images/ListarProcesos.png)
+![Ventana Listar Procesos](/../master/ListarProcesos.png)
 
 
 Ademas se decidio añadir un boton "Kill ALL Process" el cual mata todos los procesos del sistema. Para que funcione debemos entrar en el codigo de systemmonitor.cpp y cambiar el nombre de usuario, es decir, pkill -u kali mata todos los procesos del usuario "kali", por tanto, para que funcione, tenemos que cambiar "kali" por el nombre de usuario de tu sistema Linux.
@@ -43,7 +43,7 @@ Ademas, cabe destacar el uso de la clase qjsonmodel el cual nos permitio añadir
 
 Vemos una version final del listar Hardware:
 
-![Ventana Listar Hardware](/../master/images/ListarHardware.png)
+![Ventana Listar Hardware](/../master/ListarHardware.png)
 
 ## CPU
 
@@ -57,7 +57,7 @@ Hemos decidido mostrar de ese fichero:
 
 Veamos una Version final del mostrar cpuinfo.
 
-![Ventana Listar CPUInfo](/../master/images/ListarCPUInfo.png)
+![Ventana Listar CPUInfo](/../master/ListarCPUInfo.png)
 
 
 ## Current Users
@@ -71,7 +71,7 @@ systemmonitor ejecuta slot para mostrarlo en un QLabel
 
 Veamos la version final de listar current users
 
-![Ventana Listar Current Users](/../master/images/ListarCurrentUsers.png)
+![Ventana Listar Current Users](/../master/ListarCurrentUsers.png)
 
 ## Red
 
@@ -84,7 +84,7 @@ systemmonitor ejecuta slot para mostrarlo en un QLabel
 
 Veamos la version final de mostrar red.
 
-![Ventana Listar Red](/../master/images/ListarRed.png)
+![Ventana Listar Red](/../master/ListarRed.png)
 
 ## Requisitos
 
