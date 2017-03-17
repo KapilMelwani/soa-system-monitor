@@ -8,6 +8,7 @@ SystemMonitor::SystemMonitor(QWidget *parent) :
 
     qRegisterMetaType< QVector<int> >("QVector<int>");
     ui->setupUi(this);
+    ui->tabWidget->removeTab(0);
     //Parte HARDWARE
     //QJsonModel *model = new QJsonModel;
     connect(&Worker,SIGNAL(hardwareFinished()),this,SLOT(listarHardware()));
@@ -24,53 +25,39 @@ SystemMonitor::SystemMonitor(QWidget *parent) :
     current.moveToThread(&hiloCurrent);
     hiloCurrent.start();
     //Parte LISTAR PROCESOS
-    future = QtConcurrent::run(this,&SystemMonitor::listarProcesos);
     timer.start(5000);
-    watcher.setFuture(future);
-    connect(&watcher,SIGNAL(finished()),this,SLOT(processFinished()));
-    //cpuinfo();
+    connect(&timer,SIGNAL(timeout()),this,SLOT(iniciar()));
+    //Parte RED
+    connect(&red,SIGNAL(redFinished()),this,SLOT(redifconfig()));
+    connect(this,SIGNAL(redRequest()),&red,SLOT(doRed()));
+    emit redRequest();
+    red.moveToThread(&hiloRed);
+    hiloRed.start();
+    //Parte CPUINFO
+    futureCPU = QtConcurrent::run(this,&SystemMonitor::cpuinfo);
+    watcherCPU.setFuture(futureCPU);
+    connect(&watcherCPU,SIGNAL(finished()),this,SLOT(cpufinished()));
 }
 
 SystemMonitor::~SystemMonitor()
 {
     delete ui;
     hiloHardware.quit();
+    hiloHardware.wait();
     hiloCurrent.quit();
-
+    hiloCurrent.wait();
+    hiloRed.quit();
+    hiloRed.wait();
 }
 
-void SystemMonitor::listarSensores()
-{
-    ui->treeSensores->setUniformRowHeights(true);
-    QDir directorio("/sys/class/hwmon/hwmon0/");
-    QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeSensores);
-    QString content;
-    QStringList filtro_temp;
-    filtro_temp << "temp*";
-    QStringList hwmon = directorio.entryList(filtro_temp);
-    QString nombre;
-    QFile nombreSensor(directorio.absolutePath() + "/name");
-    if(nombreSensor.open(QIODevice::ReadOnly)){
-        nombre = QString(nombreSensor.readAll());
-        item->setText(0,nombre);
-        ui->treeSensores->addTopLevelItem(item);
-    }
-    nombre.remove('\n');
-    for(int i=0;i<hwmon.size();i++){
-        QFile fileHwmon(directorio.absolutePath() + '/' + hwmon[i]);
-        if(fileHwmon.open(QIODevice::ReadOnly))
-            content = QString(fileHwmon.readAll());
-            QString hwmonfinal = nombre + "::" + hwmon[i] + "->" + content;
-        addChild(item,hwmonfinal);
+/*----------------------------PARTE LISTAR PROCESOS----------------------------*/
 
-    }
-}
-
-void SystemMonitor::addChild(QTreeWidgetItem *parent,QString name)
+void SystemMonitor::iniciar()
 {
-    QTreeWidgetItem *item = new QTreeWidgetItem();
-    item->setText(0,name);
-    parent->addChild(item);
+    future = QtConcurrent::run(this,&SystemMonitor::listarProcesos);
+    watcher.setFuture(future);
+    connect(&watcher,SIGNAL(finished()),this,SLOT(processFinished()));
+    timer.start(5000);
 }
 
 QStringList SystemMonitor::listarProcesos()
@@ -114,58 +101,8 @@ QStringList SystemMonitor::listarProcesos()
         elements.push_back(threads);
     }
     return elements;
-
 }
 
-void SystemMonitor::currentusers()
-{
-    QString line = current.getLine();
-    ui->labelusers->setText(line);
-    qDebug()<<line;
-
-}
-
-void SystemMonitor::listarHardware()
-{
-    QByteArray bA;
-    QJsonModel *model = new QJsonModel;
-    bA = Worker.getByteArray();
-    ui->treeHardware->setModel(model);
-    model->loadJson(bA);
-}
-
-
-void SystemMonitor::on_killButton_clicked()
-{
-    QProcess p;
-    p.start("pkill -u kali");
-    p.waitForFinished(-1);
-
-}
-
-void SystemMonitor::on_restartButton_clicked()
-{
-    QProcess sudo;
-    QProcess restart_process;
-    sudo.start("xterm");
-    sudo.waitForFinished(-1);
-}
-
-void SystemMonitor::cpuinfo(void)
-{
-    QDir cpudir("/proc");
-    ui->labelCPU->setWordWrap(true);
-    QFile cpuinfoFile(cpudir.absolutePath() + "/cpuinfo");
-    if (cpuinfoFile.open(QIODevice::ReadOnly | QIODevice::Text)){
-        QString cpuline = cpuinfoFile.readLine();
-        QTextStream stream(&cpuinfoFile);
-        while (!stream.atEnd()){
-            cpuline.append(stream.readLine()+"\n");
-        }
-        ui->labelCPU->setText(cpuline);
-    }
-    cpuinfoFile.close();
-}
 
 void SystemMonitor::processFinished()
 {
@@ -208,14 +145,110 @@ void SystemMonitor::processFinished()
     }
 }
 
-void SystemMonitor::on_tabWidget_tabBarClicked(int index)
+
+void SystemMonitor::on_killButton_clicked()
 {
-    switch(index){
-    case 0:
-        listarSensores();
-        case 4:
-            cpuinfo();
+    QProcess p;
+    p.start("pkill -u kali");
+    p.waitForFinished(-1);
+}
+
+
+/*--------------------------PARTE LISTAR RED----------------------------*/
+
+void SystemMonitor::redifconfig()
+{
+    QString redline = red.getLine();
+    ui->labelRed->setText(redline);
+}
+
+/*--------------------------PARTE CURRENT USERS----------------------------*/
+
+void SystemMonitor::currentusers()
+{
+    QString line = current.getLine();
+    ui->labelusers->setText(line);
+}
+
+/*--------------------------PARTE HARDWARE----------------------------*/
+
+void SystemMonitor::listarHardware()
+{
+    QByteArray bA;
+    QJsonModel *model = new QJsonModel;
+    bA = Worker.getByteArray();
+    ui->treeHardware->setModel(model);
+    model->loadJson(bA);
+}
+
+/*--------------------------PARTE CPU INFO----------------------------*/
+
+
+void SystemMonitor::cpufinished()
+{
+    qDebug()<<futureCPU.result();
+    QString resultCpu = futureCPU.result();
+    ui->labelCPU->setText(resultCpu);
+}
+
+QString SystemMonitor::cpuinfo(void)
+{
+    QString cpuline;
+    QDir cpudir("/proc");
+    //ui->labelCPU->setWordWrap(true);
+    QFile cpuinfoFile(cpudir.absolutePath() + "/cpuinfo");
+    if (cpuinfoFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+        while (true) {
+            QString line = cpuinfoFile.readLine();
+            if (line.isEmpty()) break;
+            auto items = line.split("\t:");
+            if (items[0] == "model name")
+                cpuline.append(line+"\n");
+            if(items[0] == "processor")
+                cpuline.append(line+"\n");
+            if(items[0] == "cache size")
+                cpuline.append(line+"\n");
+        }
+    }
+    cpuinfoFile.close();
+    return cpuline;
+}
+
+
+/*--------------------------PARTE MANUAL (SIN HILOS) SENSORES ----------------------------*/
+
+/*
+void SystemMonitor::listarSensores()
+{
+    QDir directorio("/sys/class/hwmon/hwmon0/");
+    QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeSensores);
+    QString content;
+    QStringList filtro_temp;
+    filtro_temp << "temp*";
+    QStringList hwmon = directorio.entryList(filtro_temp);
+    QString nombre;
+    QFile nombreSensor(directorio.absolutePath() + "/name");
+    if(nombreSensor.open(QIODevice::ReadOnly)){
+        nombre = QString(nombreSensor.readAll());
+        item->setText(0,nombre);
+        ui->treeSensores->addTopLevelItem(item);
+    }
+    nombre.remove('\n');
+    for(int i=0;i<hwmon.size();i++){
+        QFile fileHwmon(directorio.absolutePath() + '/' + hwmon[i]);
+        if(fileHwmon.open(QIODevice::ReadOnly))
+            content = QString(fileHwmon.readAll());
+        QString hwmonfinal = nombre + "::" + hwmon[i] + "->" + content;
+        addChild(item,hwmonfinal);
+
     }
 }
 
+void SystemMonitor::addChild(QTreeWidgetItem *parent,QString name)
+{
+    QTreeWidgetItem *item = new QTreeWidgetItem();
+    item->setText(0,name);
+    parent->addChild(item);
+}
+*/
 

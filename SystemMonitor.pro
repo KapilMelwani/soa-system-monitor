@@ -30,6 +30,7 @@ SOURCES += main.cpp\
 HEADERS  += systemmonitor.h \
     qjsonmodel.h \
     systemmonitorworker.h \
-    systemmonitorcurrentusers.h
+    systemmonitorcurrentusers.h \
+    systemmonitorred.h
 
 FORMS    += systemmonitor.ui
